@@ -1,2 +1,0 @@
-public class DemoCode {private Long id;private Long num;private String randomCode;}
-public class DemoIndex {private Long id;private Boolean status;}

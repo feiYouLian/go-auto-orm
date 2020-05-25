@@ -124,7 +124,9 @@ func genData(t *core.Table, packageName, tablePrefix string) *Class {
 		f.JavaType = SQL2JAVAMap[c.SQLType.Name]
 		f.Name = camel.Marshal(c.Name, false)
 		ns := []rune(f.Name)
-		f.UpperName = strings.ToUpper(string(ns[0])) + string(ns[1:])
+		ns[0] -= 32
+		f.UpperName = string(ns)
+		fmt.Println(f.UpperName)
 		f.JdbcType = c.SQLType.Name
 		f.Column = c.Name
 		fields = append(fields, f)
@@ -141,7 +143,7 @@ func genData(t *core.Table, packageName, tablePrefix string) *Class {
 
 func writeTemp(tempName, fileName string, data *Class) {
 	temp, _ := template.ParseFiles(tempName)
-	file, _ := os.OpenFile(filepath.Join(fileName), os.O_CREATE, 0644)
+	file, _ := os.OpenFile(filepath.Join(fileName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	defer file.Close()
 	temp.Execute(file, data)
 }
