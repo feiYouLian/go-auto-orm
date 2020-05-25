@@ -49,3 +49,11 @@ type Class struct {
 	Fields          []*Field // 其他字段
 }
 ```
+
+## 使用
+
+1. 修改`db.yml`, 换成自己的配置
+
+2. 若是安装了`golang`, 在当前目录下`go run .`
+
+3. 若是没装`golang`, 直接执行`go-auto-orm.exe`
