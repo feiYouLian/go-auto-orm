@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="DemoIndex">
+    <sql id="base-column-list"> 
+    id,status
+    </sql>
+    <sql id="table-name"> t_demo_index </sql>
+    <sql id="from-table"> FROM t_demo_index </sql>
+
+    <sql id="where-condition">
+        WHERE 1=1
+        
+        <if test="id!=null">AND id=#{ id, jdbcType=BIGINT }</if>
+        <if test="status!=null">AND status=#{ status, jdbcType=BIT }</if> 
+    </sql>
+
+    <select id="select" resultType="DemoIndex">
+		select * 
+		<include refid="from-table"/>
+        <include refid="where-condition"/>
+    </select>
+
+    <insert id="insert" >
+        INSERT INTO
+        <include refid="table-name"/>
+        (
+         id, status
+        )
+        VALUES (
+          #{ id, jdbcType=BIGINT }  , #{ status, jdbcType=BIT } 
+        )
+    </insert>
+
+    <update id="update" parameterType="DemoIndex">
+        UPDATE
+        <include refid="table-name"/>
+        <set>
+            
+            <if test="id!=null">DATASTATUS = #{ id,jdbcType= id },</if>
+            <if test="status!=null">DATASTATUS = #{ status,jdbcType= status },</if> 
+        </set>
+       WHERE id =#{ id,jdbcType=BIGINT }
+    </update>
+
+    <delete id="delete" parameterType="DemoIndex">
+        DELETE
+        <include refid="from-table"/>
+        WHERE id =#{ id,jdbcType=BIGINT }
+    </delete>
+
+</mapper>
