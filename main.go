@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -86,21 +87,17 @@ func doOrm() {
 		for _, tn := range tableNames {
 
 			if tn == t.Name {
-				className := camel.Marshal(strings.Replace(t.Name, tablePrefix, "", 1), true)
-
 				clazz := genData(t, packageName, tablePrefix)
+				fmt.Println(clazz)
 
 				tempName := "temp/domain.java.tpl"
-				fileName := filepath.Join(packageName, className+".java")
-				writeTemp(tempName, fileName, clazz)
+				writeTemp(tempName, clazz)
 
 				tempName = "temp/dao.java.tpl"
-				fileName = filepath.Join(packageName, className+"Dao.java")
-				writeTemp(tempName, fileName, clazz)
+				writeTemp(tempName, clazz)
 
 				tempName = "temp/dao.xml.tpl"
-				fileName = filepath.Join(packageName, className+"Dao.xml")
-				writeTemp(tempName, fileName, clazz)
+				writeTemp(tempName, clazz)
 			}
 
 		}
@@ -114,15 +111,17 @@ func genData(t *core.Table, packageName, tablePrefix string) *Class {
 	clazz := new(Class)
 	clazz.PackageName = packageName
 	clazz.TableName = t.Name
-	clazz.ClassName = camel.Marshal(strings.Replace(t.Name, tablePrefix, "", 1), true)
-	clazz.VariableName = camel.Marshal(strings.Replace(t.Name, tablePrefix, "", 1), false)
+	clazz.VariableName = camel.Marshal(strings.Replace(t.Name, tablePrefix, "", 1))
+	vns := []rune(clazz.VariableName)
+	vns[0] -= 32
+	clazz.ClassName = string(vns)
 
 	clazz.PrimaryKey = t.PrimaryKeys[0]
 	var fields []*Field
 	for _, c := range t.Columns() {
 		f := new(Field)
 		f.JavaType = SQL2JAVAMap[c.SQLType.Name]
-		f.Name = camel.Marshal(c.Name, false)
+		f.Name = camel.Marshal(c.Name)
 		ns := []rune(f.Name)
 		ns[0] -= 32
 		f.UpperName = string(ns)
@@ -141,9 +140,20 @@ func genData(t *core.Table, packageName, tablePrefix string) *Class {
 	return clazz
 }
 
-func writeTemp(tempName, fileName string, data *Class) {
-	temp, _ := template.ParseFiles(tempName)
-	file, _ := os.OpenFile(filepath.Join(fileName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+func writeTemp(tmplPath string, data *Class) {
+	tmpl, _ := template.ParseFiles(tmplPath)
+	tmplName := path.Base(tmplPath)
+	suffix := strings.Split(tmplName, ".")[0]
+	extension := strings.Split(tmplName, ".")[1]
+	var fileName string
+	if strings.Index(tmplName, "domain") >= 0 {
+		fileName = data.ClassName + "." + extension
+	} else {
+		svs := []rune(suffix)
+		fileName = data.ClassName + strings.ToUpper(string(svs[0])) + string(svs[1:]) + "." + extension
+	}
+
+	file, _ := os.OpenFile(filepath.Join(data.PackageName, fileName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	defer file.Close()
-	temp.Execute(file, data)
+	tmpl.Execute(file, data)
 }

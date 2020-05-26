@@ -1,4 +1,4 @@
-package {{.PackageName}}.module;
+package {{.PackageName}}.model;
 
 public class {{.ClassName}}{
     {{range .Fields}}
