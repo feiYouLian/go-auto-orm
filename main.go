@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"go-auto-orm/camel"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -77,27 +77,17 @@ func doOrm() {
 	if input.Scan() {
 		packageName = input.Text()
 	}
-	if len(packageName) > 0 {
-		os.MkdirAll(packageName, os.ModeDir)
-	}
+
+	templatePaths := findTemplatePaths()
 
 	tables, _ := DB.DBMetas()
-
-	for _, t := range tables {
+	for _, tab := range tables {
 		for _, tn := range tableNames {
-
-			if tn == t.Name {
-				clazz := genData(t, packageName, tablePrefix)
-				fmt.Println(clazz)
-
-				tempName := "temp/domain.java.tpl"
-				writeTemp(tempName, clazz)
-
-				tempName = "temp/dao.java.tpl"
-				writeTemp(tempName, clazz)
-
-				tempName = "temp/dao.xml.tpl"
-				writeTemp(tempName, clazz)
+			if tn == tab.Name {
+				clazz := genData(tab, packageName, tablePrefix)
+				for _, tPath := range templatePaths {
+					writeTemplate(tPath, clazz)
+				}
 			}
 
 		}
@@ -125,7 +115,6 @@ func genData(t *core.Table, packageName, tablePrefix string) *Class {
 		ns := []rune(f.Name)
 		ns[0] -= 32
 		f.UpperName = string(ns)
-		fmt.Println(f.UpperName)
 		f.JdbcType = c.SQLType.Name
 		f.Column = c.Name
 		fields = append(fields, f)
@@ -140,20 +129,36 @@ func genData(t *core.Table, packageName, tablePrefix string) *Class {
 	return clazz
 }
 
-func writeTemp(tmplPath string, data *Class) {
-	tmpl, _ := template.ParseFiles(tmplPath)
-	tmplName := path.Base(tmplPath)
-	suffix := strings.Split(tmplName, ".")[0]
-	extension := strings.Split(tmplName, ".")[1]
+func findTemplatePaths() (templatePaths []string) {
+	fs, _ := ioutil.ReadDir("./template")
+	for _, f := range fs {
+		if strings.HasSuffix(f.Name(), ".tpl") {
+			tPath := filepath.Join("./template", f.Name())
+			templatePaths = append(templatePaths, tPath)
+		}
+	}
+	return
+}
+
+func writeTemplate(tPath string, data *Class) {
+
+	t, _ := template.ParseFiles(tPath)
+	suffix := strings.Split(t.ParseName, ".")[0]
+	extension := strings.Split(t.ParseName, ".")[1]
+
 	var fileName string
-	if strings.Index(tmplName, "domain") >= 0 {
+	if strings.Index(t.ParseName, "domain") >= 0 {
 		fileName = data.ClassName + "." + extension
 	} else {
 		svs := []rune(suffix)
 		fileName = data.ClassName + strings.ToUpper(string(svs[0])) + string(svs[1:]) + "." + extension
 	}
 
+	if len(data.PackageName) > 0 {
+		os.MkdirAll(data.PackageName, os.ModeDir)
+	}
+
 	file, _ := os.OpenFile(filepath.Join(data.PackageName, fileName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	defer file.Close()
-	tmpl.Execute(file, data)
+	t.Execute(file, data)
 }
